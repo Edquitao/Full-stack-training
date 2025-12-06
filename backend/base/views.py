@@ -1,20 +1,57 @@
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import Product
-from .serializer import ProducSerializer
+from .serializer import ProductSerializer, UserSerializer, RegisterSerializer, CartUserSerializer
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 # Create your views here.
 
 @api_view(['GET'])
 def get_products(request):
     products = Product.objects.all()
-    serializer = ProducSerializer(products, many=True)
+    serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
 def get_products_detail(request,pk):
     product = get_object_or_404(Product, pk=pk)
-    serializer= ProducSerializer(product)
+    serializer= ProductSerializer(product)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user(request):
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+
+# Register user function
+@api_view(['POST'])
+def register_user(request):
+    serializer = UserSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()  
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def logout_user(request):
+    refresh_token = request.data.get('refresh')
+    if not refresh_token:
+        return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try: 
+        token = RefreshToken(refresh_token)
+        token.blacklist()
+        return Response({"detail": "Logout successful."}, status=status.HTTP_205_RESET_CONTENT)
+    except Exception as e:
+        return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def profile_view(request):
+    serializer=UserSerializer(request.user)
     return Response(serializer.data)

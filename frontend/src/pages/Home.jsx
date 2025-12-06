@@ -7,7 +7,6 @@ import Product_list from "../components/Product_list";
 const Home = () => {
   return (
     <div>
-      <Header />
       <Hero />
       <ProductGuide />
       <Product_list />
